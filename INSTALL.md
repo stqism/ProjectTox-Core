@@ -18,6 +18,14 @@ Build dependencies:
 ```bash
 apt-get install build-essential libtool autotools-dev automake libconfig-dev ncurses-dev cmake checkinstall
 ```
+
+On Fedora:
+
+```bash
+yum groupinstall "Development Tools"
+yum install libtool autoconf automake libconfig-devel ncurses-devel cmake
+```
+
 Note that `libconfig-dev` should be >= 1.4.
 
 You should get and install [libsodium](https://github.com/jedisct1/libsodium):
@@ -30,6 +38,20 @@ git checkout tags/0.4.2
 sudo checkinstall --install --pkgname libsodium --pkgversion 0.4.2 --nodoc
 sudo ldconfig
 ```
+
+Or if checkinstall is not easily available for your distribution (e.g. Fedora), 
+this will install the libs to /usr/local/lib and the headers to /usr/local/include:
+
+```bash
+git clone git://github.com/jedisct1/libsodium.git
+cd libsodium
+git checkout tags/0.4.2
+./autogen.sh
+./configure
+make check
+sudo make install
+```
+
 
 Then clone this repo and generate makefile:
 ```bash
@@ -79,6 +101,7 @@ Grab the following packages:
   * http://www.gnu.org/software/automake/
   * http://www.cmake.org/
   * https://github.com/jedisct1/libsodium
+  * http://www.hyperrealm.com/libconfig/
 
 Uncompress and install them all. Make sure to follow the README as the instructions change, but they all follow the same pattern below:
 
@@ -96,7 +119,7 @@ make
 ```
 
 Do not install them from macports (or any dependencies for that matter) as they get shoved in the wrong directory
-and make your life more annoying.
+(or the wrong version gets installed) and make your life more annoying.
 
 Another thing you may want to install is the latest gcc, this caused me a few problems as XCode from 4.3
 no longer includes gcc and instead uses LLVM-GCC, a nice install guide can be found at
