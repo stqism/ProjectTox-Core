@@ -9,7 +9,9 @@ add_executable(${exe_name}
 	friendlist.c
 	chat.c)
 
-target_link_libraries(${exe_name}
-	curses)
+if(WIN32)
+	target_link_libraries(${exe_name} pdcurses)
+else(NOT WIN32)
+	target_link_libraries(${exe_name} curses)
 
 linkCoreLibraries(${exe_name})
