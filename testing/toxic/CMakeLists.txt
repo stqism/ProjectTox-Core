@@ -13,5 +13,6 @@ if(WIN32)
 	target_link_libraries(${exe_name} pdcurses)
 else(NOT WIN32)
 	target_link_libraries(${exe_name} curses)
+endif()
 
 linkCoreLibraries(${exe_name})
