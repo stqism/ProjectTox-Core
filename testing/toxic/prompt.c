@@ -346,8 +346,22 @@ static void prompt_onKey(ToxWindow *self, int key)
 	  getsyx(y, x);
       setsyx(y, (prompt_buf_pos + x));
 	  doupdate();
+    }
   }
-	}
+  else if (key == KEY_RIGHT) {
+    if (prompt_buf[prompt_buf_pos + 1] == 0)
+	  editing = FALSE;
+    else{
+	  editing = TRUE;
+      ++prompt_buf_pos;
+	  int x, y;
+      x = 2;
+	  getsyx(y, x);
+      setsyx(y, (prompt_buf_pos + x));
+	  doupdate();
+      }
+
+   }
   /* BACKSPACE key: Remove one character from line */
   else if (key == 0x107 || key == 0x8 || key == 0x7f) {
     if (prompt_buf_pos != 0) {
