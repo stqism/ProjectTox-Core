@@ -43,6 +43,7 @@ extern "C" {
 #define PACKET_ID_USERSTATUS 50
 #define PACKET_ID_RECEIPT 65
 #define PACKET_ID_MESSAGE 64
+#define PACKET_ID_ACTION 63
 
 /* status definitions */
 #define FRIEND_ONLINE 4
@@ -122,6 +123,11 @@ int m_friendstatus(int friendnumber);
 uint32_t m_sendmessage(int friendnumber, uint8_t *message, uint32_t length);
 uint32_t m_sendmessage_withid(int friendnumber, uint32_t theid, uint8_t *message, uint32_t length);
 
+/* send an action to an online friend
+    returns 1 if packet was successfully put into the send queue
+    return 0 if it was not */
+int m_sendaction(int friendnumber, uint8_t *action, uint32_t length);
+
 /* Set our nickname
    name must be a string of maximum MAX_NAME_LENGTH length.
    length must be at least 1 byte
@@ -178,6 +184,10 @@ void m_callback_friendrequest(void (*function)(uint8_t *, uint8_t *, uint16_t));
     function format is: function(int friendnumber, uint8_t * message, uint32_t length) */
 void m_callback_friendmessage(void (*function)(int, uint8_t *, uint16_t));
 
+/* set the function that will be executed when an action from a friend is received.
+    function format is: function(int friendnumber, uint8_t * action, uint32_t length) */
+void m_callback_action(void (*function)(int, uint8_t *, uint16_t));
+
 /* set the callback for name changes
     function(int friendnumber, uint8_t *newname, uint16_t length)
     you are not responsible for freeing newname */
@@ -188,6 +198,10 @@ void m_callback_namechange(void (*function)(int, uint8_t *, uint16_t));
     you are not responsible for freeing newstatus */
 void m_callback_statusmessage(void (*function)(int, uint8_t *, uint16_t));
 
+/* set the callback for status type changes
+    function(int friendnumber, USERSTATUS kind) */
+void m_callback_userstatus(void (*function)(int, USERSTATUS));
+
 /* set the callback for read receipts
     function(int friendnumber, uint32_t receipt)
     if you are keeping a record of returns from m_sendmessage,
@@ -196,6 +210,10 @@ void m_callback_statusmessage(void (*function)(int, uint8_t *, uint16_t));
     track ids for you, receipt may not correspond to any message
     in that case, you should discard it. */
 void m_callback_read_receipt(void (*function)(int, uint32_t));
+
+/* set the callback for friend status changes
+    function(int friendnumber, uint8_t status) */
+void m_callback_friendstatus(void (*function)(int, uint8_t));
 
 /* run this at startup
     returns 0 if no connection problems
