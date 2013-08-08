@@ -3,14 +3,23 @@
  */
 
 #include <curses.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef _win32
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#include <sys/types.h>
+#endif
+
 #include "../../core/Messenger.h"
 #include "../../core/network.h"
 
+#include "configdir.h"
 #include "windows.h"
 
 extern ToxWindow new_prompt();
@@ -22,7 +31,10 @@ extern int add_req(uint8_t *public_key); // XXX
 
 /* Holds status of chat windows */
 char WINDOW_STATUS[MAX_WINDOW_SLOTS];
-//#define TOXICVER "0.1.0" //Will be moved to a -D flag later 
+
+#ifndef TOXICVER
+#define TOXICVER "NOVER" //Use the -D flag to set this
+#endif
 
 static ToxWindow windows[MAX_WINDOW_SLOTS];
 static ToxWindow* prompt;
@@ -37,12 +49,13 @@ void on_request(uint8_t *public_key, uint8_t *data, uint16_t length)
   wprintw(prompt->window, "\nFriend request from:\n");
 
   int i;
-  for (i = 0; i < 32; ++i) {
+  for (i = 0; i < KEY_SIZE_BYTES; ++i) {
     wprintw(prompt->window, "%02x", public_key[i] & 0xff);
   }
 
-  wprintw(prompt->window, "\n");
-  wprintw(prompt->window, "Use \"accept %d\" to accept it.\n", n);
+  wprintw(prompt->window, "\nWith the message: %s\n", data);
+  wprintw(prompt->window, "\nUse \"accept %d\" to accept it.\n", n);
+
   for (i = 0; i < MAX_WINDOW_SLOTS; ++i) {
     if (windows[i].onFriendRequest != NULL)
       windows[i].onFriendRequest(&windows[i], public_key, data, length);
@@ -51,11 +64,19 @@ void on_request(uint8_t *public_key, uint8_t *data, uint16_t length)
 
 void on_message(int friendnumber, uint8_t *string, uint16_t length)
 {
-  wprintw(prompt->window, "\n(message) %d: %s\n", friendnumber, string);
   int i;
   for (i = 0; i < MAX_WINDOW_SLOTS; ++i) {
     if (windows[i].onMessage != NULL)
       windows[i].onMessage(&windows[i], friendnumber, string, length);
+  }
+}
+
+void on_action(int friendnumber, uint8_t *string, uint16_t length)
+{
+  int i;
+  for (i = 0; i < MAX_WINDOW_SLOTS; ++i) {
+    if (windows[i].onAction != NULL)
+      windows[i].onAction(&windows[i], friendnumber, string, length);
   }
 }
 
@@ -114,6 +135,7 @@ static void init_tox()
   m_callback_friendmessage(on_message);
   m_callback_namechange(on_nickchange);
   m_callback_statusmessage(on_statuschange);
+  m_callback_action(on_action);
 }
 
 void init_window_status()
@@ -269,13 +291,13 @@ static void draw_bar()
         attron(A_BOLD);
 
       odd = (odd+1) % blinkrate;
-      if (windows[i].blink && (odd < (blinkrate/2))) {
+      if (windows[i].blink && (odd < (blinkrate/2)))
         attron(COLOR_PAIR(3));
-      }
+
       printw(" %s", windows[i].title);
-      if (windows[i].blink && (odd < (blinkrate/2))) {
+      if (windows[i].blink && (odd < (blinkrate/2)))
         attroff(COLOR_PAIR(3));
-      }
+
       if (i == active_window) {
         attroff(A_BOLD);
       }
@@ -305,7 +327,6 @@ void set_active_window(int ch)
       i = (i  + 1) % max;
       if (f_inf++ > max) {    // infinite loop check
         endwin();
-        clear();
         exit(2);
       }
     }
@@ -320,7 +341,6 @@ void set_active_window(int ch)
       if (--i < 0) i = max;
       if (f_inf++ > max) {
         endwin();
-        clear();
         exit(2);
       }
     }
@@ -331,9 +351,19 @@ int main(int argc, char *argv[])
 {
   int ch;
   int f_flag = 0;
-  char *filename = "data";
+  char *user_config_dir = get_user_config_dir();
+  char *filename;
+  int config_err = create_user_config_dir(user_config_dir);
+  if(config_err) {
+    filename = "data";
+  } else {
+    filename = malloc(strlen(user_config_dir) + strlen(CONFIGDIR) + strlen("data") + 1);
+    strcpy(filename, user_config_dir);
+    strcat(filename, CONFIGDIR);
+    strcat(filename, "data");
+  }
+  
   ToxWindow* a;
-
   int i = 0;
   for (i = 0; i < argc; ++i) {
     if (argv[i] == NULL)
@@ -351,12 +381,20 @@ int main(int argc, char *argv[])
   init_term();
   init_tox();
   load_data(filename);
+  free(filename);
   init_windows();
   init_window_status();
 
   if (f_flag == -1) {
     attron(COLOR_PAIR(3) | A_BOLD);
     wprintw(prompt->window, "You passed '-f' without giving an argument!\n"
+                            "defaulting to 'data' for a keyfile...\n");
+    attroff(COLOR_PAIR(3) | A_BOLD);
+  }
+
+  if(config_err) {
+    attron(COLOR_PAIR(3) | A_BOLD);
+    wprintw(prompt->window, "Unable to determine configuration directory!\n"
                             "defaulting to 'data' for a keyfile...\n");
     attroff(COLOR_PAIR(3) | A_BOLD);
   }

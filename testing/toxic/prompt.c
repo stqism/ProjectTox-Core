@@ -20,6 +20,8 @@ static void print_usage(ToxWindow *self);
 static char prompt_buf[256] = {0};
 static int prompt_buf_pos = 0;
 
+bool editing = FALSE;
+
 // XXX:
 int add_req(uint8_t *public_key)
 {
@@ -324,7 +326,8 @@ static void prompt_onKey(ToxWindow *self, int key)
       prompt_buf[prompt_buf_pos++] = '\n';
     }
     prompt_buf[prompt_buf_pos++] = key;
-    prompt_buf[prompt_buf_pos] = 0;
+    if (editing == FALSE)
+        prompt_buf[prompt_buf_pos] = 0;
   }
 
   /* RETURN key: execute command */
@@ -334,7 +337,17 @@ static void prompt_onKey(ToxWindow *self, int key)
     prompt_buf_pos = 0;
     prompt_buf[0] = 0;
   }
-
+  else if (key == KEY_LEFT) {
+    if (prompt_buf_pos != 0){
+      --prompt_buf_pos;
+    editing = TRUE;
+	  int x, y;
+      x = 2;
+	  getsyx(y, x);
+      setsyx(y, (prompt_buf_pos + x));
+	  doupdate();
+  }
+	}
   /* BACKSPACE key: Remove one character from line */
   else if (key == 0x107 || key == 0x8 || key == 0x7f) {
     if (prompt_buf_pos != 0) {
