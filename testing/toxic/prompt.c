@@ -12,13 +12,15 @@
 
 #include "windows.h"
 
-uint8_t pending_requests[MAX_STR_SIZE][CLIENT_ID_SIZE]; // XXX
+uint8_t pending_requests[256][CLIENT_ID_SIZE]; // XXX
 uint8_t num_requests=0; // XXX
 
 extern void on_friendadded(int friendnumber);
 static void print_usage(ToxWindow *self);
-static char prompt_buf[MAX_STR_SIZE] = {0};
+static char prompt_buf[256] = {0};
 static int prompt_buf_pos = 0;
+
+bool editing = FALSE;
 
 // XXX:
 int add_req(uint8_t *public_key)
@@ -43,7 +45,7 @@ unsigned char *hex_string_to_bin(char hex_string[])
 static void execute(ToxWindow *self, char *u_cmd)
 {
   int newlines = 0;
-  char cmd[MAX_STR_SIZE] = {0};
+  char cmd[256] = {0};
   int i;
   for (i = 0; i < strlen(prompt_buf); ++i) {
     if (u_cmd[i] == '\n')
@@ -53,9 +55,9 @@ static void execute(ToxWindow *self, char *u_cmd)
   }
 
   int leading_spc = 0;
-  for (i = 0; i < MAX_STR_SIZE && isspace(cmd[i]); ++i)
+  for (i = 0; i < 256 && isspace(cmd[i]); ++i)
     leading_spc++;
-  memmove(cmd, cmd + leading_spc, MAX_STR_SIZE - leading_spc);
+  memmove(cmd, cmd + leading_spc, 256 - leading_spc);
 
   int cmd_end = strlen(cmd);
   while (cmd_end > 0 && cmd_end--)
@@ -121,7 +123,7 @@ static void execute(ToxWindow *self, char *u_cmd)
   }
 
   else if (!strncmp(cmd, "add ", strlen("add "))) {
-    uint8_t id_bin[KEY_SIZE_BYTES];
+    uint8_t id_bin[32];
     char xx[3];
     uint32_t x;
     char *id = strchr(cmd, ' ');
@@ -136,12 +138,12 @@ static void execute(ToxWindow *self, char *u_cmd)
       msg++;
     }
     else msg = "";
-    if (strlen(id) != 2*KEY_SIZE_BYTES) {
+    if (strlen(id) != 2*32) {
       wprintw(self->window, "Invalid ID length.\n");
       return;
     }
     int i;
-    for (i = 0; i < KEY_SIZE_BYTES; ++i) {
+    for (i = 0; i < 32; ++i) {
       xx[0] = id[2*i];
       xx[1] = id[2*i+1];
       xx[2] = '\0';
@@ -228,6 +230,17 @@ static void execute(ToxWindow *self, char *u_cmd)
     }
   }
 
+  else if (!strncmp(cmd, "statusmsg ", strlen("statumsg "))) {
+    char *msg = strchr(cmd, ' ');
+    if (msg == NULL) {
+      wprintw(self->window, "Invalid syntax.\n");
+      return;
+    }
+    msg++;
+    m_set_statusmessage((uint8_t*) msg, strlen(msg)+1);
+    wprintw(self->window, "Status set to: %s\n", msg);
+  }
+
   else if (!strncmp(cmd, "nick ", strlen("nick "))) {
     char *nick = strchr(cmd, ' ');
     if (nick == NULL) {
@@ -240,9 +253,9 @@ static void execute(ToxWindow *self, char *u_cmd)
   }
 
   else if (!strcmp(cmd, "myid")) {
-    char id[KEY_SIZE_BYTES*2 + 1] = {0};
+    char id[32*2 + 1] = {0};
     size_t i;
-    for (i = 0; i < KEY_SIZE_BYTES; ++i) {
+    for (i = 0; i < 32; ++i) {
       char xx[3];
       snprintf(xx, sizeof(xx), "%02x", self_public_key[i] & 0xff);
       strcat(id, xx);
@@ -313,7 +326,8 @@ static void prompt_onKey(ToxWindow *self, int key)
       prompt_buf[prompt_buf_pos++] = '\n';
     }
     prompt_buf[prompt_buf_pos++] = key;
-    prompt_buf[prompt_buf_pos] = 0;
+    if (editing == FALSE)
+        prompt_buf[prompt_buf_pos] = 0;
   }
 
   /* RETURN key: execute command */
@@ -323,7 +337,17 @@ static void prompt_onKey(ToxWindow *self, int key)
     prompt_buf_pos = 0;
     prompt_buf[0] = 0;
   }
-
+  else if (key == KEY_LEFT) {
+    if (prompt_buf_pos != 0){
+      --prompt_buf_pos;
+    editing = TRUE;
+	  int x, y;
+      x = 2;
+	  getsyx(y, x);
+      setsyx(y, (prompt_buf_pos + x));
+	  doupdate();
+  }
+	}
   /* BACKSPACE key: Remove one character from line */
   else if (key == 0x107 || key == 0x8 || key == 0x7f) {
     if (prompt_buf_pos != 0) {
@@ -361,6 +385,7 @@ static void print_usage(ToxWindow *self)
   wprintw(self->window, "      connect <ip> <port> <key> : Connect to DHT server\n");
   wprintw(self->window, "      add <id> <message>        : Add friend\n");
   wprintw(self->window, "      status <type> <message>   : Set your status\n");
+  wprintw(self->window, "      statusmsg  <message>      : Set your status\n");
   wprintw(self->window, "      nick <nickname>           : Set your nickname\n");
   wprintw(self->window, "      accept <number>           : Accept friend request\n");
   wprintw(self->window, "      myid                      : Print your ID\n");
