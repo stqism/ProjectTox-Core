@@ -1,7 +1,7 @@
 #Install Instructions
 
 - [Installation](#installation)
-    - [Linux](#linux)
+    - [Unix like (Linux)](#unix)
     - [OS X](#osx)
       - [Homebrew](#homebrew)
       - [Non-Homebrew](#non-homebrew)
@@ -10,10 +10,14 @@
 <a name="installation" />
 ##Installation
 
-<a name="linux" />
-###Linux:
+<a name="unix" />
+###Most Unix like OSes (Linux):
 
 Build dependencies:
+
+Note: package fetching commands may vary by OS.
+
+On Ubuntu: 
 
 ```bash
 sudo apt-get install build-essential libtool autotools-dev automake libconfig-dev ncurses-dev checkinstall check git libswscale-dev libsdl-dev libopenal-dev libopus-dev libvpx-dev yasm
@@ -24,7 +28,7 @@ On Fedora:
 ```bash
 yum groupinstall "Development Tools"
 yum install libtool autoconf automake libconfig-devel ncurses-devel check check-devel
-```
+``` 
 
 Note that `libconfig-dev` should be >= 1.4.
 
@@ -54,7 +58,7 @@ make check
 sudo make install
 cd ..
 ```
-If your default prefix is /usr/local and you happen to get an error that says "error while loading shared libraries: libtoxcore.so.0: cannot open shared object file: No such file or directory", then you can try running ```sudo ldconfig```. If that doesn't fix it, run:
+If your default prefix is /usr/local and you happen to get an error that says "error while loading shared libraries: libtoxcore.so.0: cannot open shared object file: No such file or directory", then you can try running ```sudo ldconfig```, this is an issue common on Linux. If that doesn't fix it, run:
 ```
 echo '/usr/local/lib/' | sudo tee -a /etc/ld.so.conf.d/locallib.conf
 sudo ldconfig
