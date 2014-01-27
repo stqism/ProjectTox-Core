@@ -864,8 +864,10 @@ int add_groupchat(Messenger *m)
     temp[m->numchats] = new_groupchat(m->net);
 
     if (temp[m->numchats] == NULL)
-      free(temp);
-      return -1;
+    {
+        free(temp);
+        return -1;
+    }
 
     m->chats = temp;
     callback_groupmessage(temp[m->numchats], &group_message_function, m);
